@@ -1,0 +1,29 @@
+﻿config:
+  connection:
+    platform: vaas
+    credentials:
+      apiKey: '{{ Env "TLSCP_APIKEY" }}' # APIKEY as Environment variable
+    url: https://api.venafi.eu
+certificateTasks:
+  - name: renewRdsCertificate # Task Identifier, no relevance in tool run
+    renewBefore: 31d
+    request:
+      csr: service
+      subject:
+        # Templating needs to go between single quotes to avoid issues when refreshing tokens and saving back
+        commonName: '{{ Hostname | ToLower -}}.{{- Env "USERDNSDOMAIN" | ToLower }}'
+        country: NL
+        locality: Amsterdam
+        state: NH
+        organization: timschindler.dev
+        sanDNS:
+          - '{{ Hostname | ToLower -}}.{{- Env "USERDNSDOMAIN" | ToLower }}'
+          - 'psm.timschindler.dev'
+      zone: "CyberArk\\90 Day"
+    installations:
+      - format: CAPI
+        capiLocation: LocalMachine\MY
+        capiFriendlyName: Venafi vCert Managed - RDS TLS Certificate
+        capiIsNonExportable: True
+        afterInstallAction: >
+          wmic /namespace:\\root\cimv2\TerminalServices PATH Win32_TSGeneralSetting Set SSLCertificateSHA1Hash="$($(Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.FriendlyName -eq "Venafi vCert Managed - RDS TLS Certificate" }).Thumbprint)"
